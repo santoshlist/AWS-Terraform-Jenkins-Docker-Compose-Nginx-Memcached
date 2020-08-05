@@ -7,32 +7,71 @@ services:
     ports:
      - "11211:11211"
 
+    #maven:3.6-jdk-8-alpine
     #maven:3.6.3-openjdk-8
   dev:
     container_name: dev
-    image: maven:3.6-jdk-8-alpine
+    image: maven:3.6.3-openjdk-8
     volumes:
-    #  - /home/Admin/docker/m2:/root/.m2/repository
+      - /home/Admin/docker/m2:/root/.m2/repository
       - ./app:/app
     #ports:
     # - "8080:9191"
     working_dir: /app
-    command: ["mvn", "clean", "mvn", "verify"]
-      #java -jar app/target/embedash-1.1-SNAPSHOT.jar --spring.config.location=/app/application.properties
-    
-    #java -jar app/target/embedash-1.1-SNAPSHOT.jar --spring.config.location=/app/application.properties
-  
-  pro:
-    container_name: pro
-    image: openjdk:8-jre-alpine
-    volumes:
-    #  - /home/Admin/docker/m2:/root/.m2/repository
-      - ./app:/app
-    ports:
-     - "8080:9191"
-    working_dir: /app
-    command: java -jar target/embedash-1.1-SNAPSHOT.jar --spring.config.location=./application.properties
+    command: >
+      sh -c "ls &&
+            mvn clean &&
+            mvn verify -X"
+#java -jar app/target/embedash-1.1-SNAPSHOT.jar --spring.config.location=/app/application.properties
 
+  prod:
+    container_name: prod
+    image: openjdk:8-jre-alpine3.9
+    volumes:
+      - /home/Admin/docker/m2:/root/.m2/repository
+      - ./app:/app
+    #ports:
+    # - "8080:9191"
+    working_dir: /app
+    command: ["java", "-jar", "target/embedash-1.1-SNAPSHOT.jar", "--spring.config.location=./application.properties"]
+
+  e2e:
+    container_name: e2e
+    build:
+      dockerfile: e2e.Dockerfile
+      context: .
+    image: e2e
+    volumes:
+     - .:/e2e
+    working_dir: /e2e
+    command: sh
+
+  static:
+    container_name: static
+    image: nginx:1.18-alpine
+    volumes:
+     - ./app/target/classes:/target
+     - st:/usr/share/nginx/html
+    working_dir: /target
+    command: >
+      sh -c "ls &&
+          rm -f /usr/share/nginx/html/index.html
+          cp -vr static /usr/share/nginx/html/static &&
+          rm -rf static"
+
+  ng:
+    container_name: ng
+    image: nginx:1.18-alpine
+    volumes:
+      - st:/usr/share/nginx/html
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    ports:
+     - "8080:8080"
+    command: [nginx-debug, '-g', 'daemon off;']
+
+
+volumes:
+  st:
 
 networks:
   default:
