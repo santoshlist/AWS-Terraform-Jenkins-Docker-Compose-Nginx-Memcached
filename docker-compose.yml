@@ -1,17 +1,11 @@
 version: '3.7'
 
 services:
-  mem:
-    image: memcached:alpine
-    container_name: mem
-    ports:
-     - "11211:11211"
-
     #maven:3.6-jdk-8-alpine
     #maven:3.6.3-openjdk-8
   dev:
     container_name: dev
-    image: maven:3.6.3-openjdk-8
+    image: maven:3.6-jdk-8-alpine
     volumes:
       - /home/Admin/docker/m2:/root/.m2/repository
       - ./app:/app
@@ -23,6 +17,12 @@ services:
             mvn clean &&
             mvn verify -X"
 #java -jar app/target/embedash-1.1-SNAPSHOT.jar --spring.config.location=/app/application.properties
+  
+  mem:
+    image: memcached:alpine
+    container_name: mem
+    ports:
+    - "11211:11211"
 
   prod:
     container_name: prod
@@ -33,7 +33,38 @@ services:
     #ports:
     # - "8080:9191"
     working_dir: /app
-    command: ["java", "-jar", "target/embedash-1.1-SNAPSHOT.jar", "--spring.config.location=./application.properties"]
+    command: ["java", "-jar", "target/embedash-1.1-SNAPSHOT.jar", 
+    "--spring.config.location=./application.properties"]
+    depends_on: 
+      - mem
+
+  
+  static:
+    container_name: static
+    image: nginx:1.18-alpine
+    volumes:
+     - ./app/target/classes:/target
+     - st:/usr/share/nginx/html
+    working_dir: /target
+    command: >
+      sh -c "ls &&
+          rm -f /usr/share/nginx/html/index.html || : &&
+          rm -rf /usr/share/nginx/html/static || : &&
+          cp -vr static /usr/share/nginx/html/static || : &&
+          rm -rf static || : "
+
+  ng:
+    container_name: ng
+    image: nginx:1.18-alpine
+    volumes:
+      - st:/usr/share/nginx/html
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./my-wait.sh:/my-wait.sh
+    ports:
+     - "8080:8080"
+    command: [./my-wait.sh, prod, '9191', nginx-debug, '-g', 'daemon off;']
+    depends_on: 
+      - prod
 
   e2e:
     container_name: e2e
@@ -44,30 +75,10 @@ services:
     volumes:
      - .:/e2e
     working_dir: /e2e
-    command: sh
+    command: [./my-wait.sh, ng, '8080', ./e2e.sh]
+    depends_on:
+     - ng
 
-  static:
-    container_name: static
-    image: nginx:1.18-alpine
-    volumes:
-     - ./app/target/classes:/target
-     - st:/usr/share/nginx/html
-    working_dir: /target
-    command: >
-      sh -c "ls &&
-          rm -f /usr/share/nginx/html/index.html
-          cp -vr static /usr/share/nginx/html/static &&
-          rm -rf static"
-
-  ng:
-    container_name: ng
-    image: nginx:1.18-alpine
-    volumes:
-      - st:/usr/share/nginx/html
-      - ./nginx.conf:/etc/nginx/nginx.conf
-    ports:
-     - "8080:8080"
-    command: [nginx-debug, '-g', 'daemon off;']
 
 
 volumes:
