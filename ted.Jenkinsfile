@@ -25,7 +25,7 @@ pipeline {
     }
     stage('Test') {
       steps {
-        sh "docker-compose -f ted.yml up static && docker-compose -f ted.yml up mem prod ng"
+        sh "docker-compose -f ted.yml up static && docker-compose -f ted.yml up -d mem prod ng"
         sh 'docker-compose -f ted.yml up e2e'
       }
       post{
