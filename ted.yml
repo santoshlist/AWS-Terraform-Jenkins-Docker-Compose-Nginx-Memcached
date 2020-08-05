@@ -24,12 +24,12 @@ services:
      - st:/usr/share/nginx/html
     working_dir: ${WORKSPACE}
     command: >
-      sh -c "ls /app/target&&
+      sh -c "ls ./app/target/classes &&
           rm -f /usr/share/nginx/html/index.html || : &&
           rm -rf /usr/share/nginx/html/static || : &&
-          cp -vr /app/target/static /usr/share/nginx/html/static &&
+          cp -vr ./app/target/classes/static /usr/share/nginx/html/static &&
           cp -vf nginx.conf /etc/nginx/nginx.conf
-          #rm -rf /app/target/static"
+          #rm -rf ./app/target/classes/static"
 
   ng:
     container_name: ng
@@ -43,7 +43,6 @@ services:
     command: [./my-wait.sh, prod, '9191', nginx-debug, '-g', 'daemon off;']
     depends_on: 
       - prod
-    user: "1000:1000"
 
   e2e:
     container_name: e2e
