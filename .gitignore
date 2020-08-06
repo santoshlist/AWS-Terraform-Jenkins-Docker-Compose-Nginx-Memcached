@@ -3,3 +3,4 @@ Ted Search instruction.docx
 target/
 .ted.config.json
 app/my-wait.sh
+terraform.tfstate.backup
