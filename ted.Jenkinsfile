@@ -1,3 +1,5 @@
+@Library('github.com/releaseworks/jenkinslib') _
+
 pipeline {
   agent any
 
@@ -22,7 +24,7 @@ pipeline {
           sh 'mvn verify'
         }
       }
-    }
+    }/*
     stage('Test') {
       steps {
         sh "docker-compose -f ted.yml up static && docker-compose -f ted.yml up -d mem prod ng"
@@ -33,6 +35,18 @@ pipeline {
           echo "========always========"
           sh 'docker-compose down'
         }
+      }
+    }*
+    stage("Publish") {
+      steps {
+        withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'aws-iam', usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+          AWS("--region=eu-central-1 s3 cp app/target/embedash-1.1-SNAPSHOT.jar s3://16-ted-search/app/")
+        }
+      }
+    }*/
+    stage("Deploy") {
+      steps {
+        
       }
     }
   }

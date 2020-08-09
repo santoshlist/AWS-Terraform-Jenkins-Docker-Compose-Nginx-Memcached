@@ -26,6 +26,7 @@ resource "aws_instance" "Bastion" {
   instance_type        = var.instance_type
   iam_instance_profile = data.aws_iam_instance_profile.SSM-S3.name
   subnet_id            = data.aws_subnet.sb_pub.id
+  private_ip           = "10.10.10.10"
   vpc_security_group_ids = [
     data.aws_security_group.sg.id
   ]
@@ -39,7 +40,10 @@ resource "aws_instance" "Bastion" {
 		#!/bin/bash -xe
     #exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
     sudo amazon-linux-extras enable nginx1.12
-		sudo yum clean metadata && sudo yum update -y && sudo yum -y install nginx
+		sudo yum clean metadata && sudo yum update -y && sudo yum -y install nginx 
+    rm -f /usr/share/nginx/html/index.html
+    aws s3 cp s3://16-ted-search/nginx.conf /etc/nginx/nginx.conf
+    aws s3 sync s3://16-ted-search/static/ /usr/share/nginx/html/static
     sudo chkconfig nginx on
     sudo service nginx start
 	EOT
@@ -65,53 +69,31 @@ resource "aws_instance" "Bastion" {
   */
 }
 
-resource "aws_instance" "Backand" {
-  ami                  = var.instance_ami
-  instance_type        = var.instance_type
-  iam_instance_profile = data.aws_iam_instance_profile.SSM-S3.name
-  subnet_id            = data.aws_subnet.sb_prv.id
-  vpc_security_group_ids = [
-    data.aws_security_group.sg.id
-  ]
-  tags = {
-    Name        = "Backend - Ted Search App"
-    Environment = var.environment_tag
-  }
-  user_data = <<EOT
-    #!/bin/bash -xe
-    #exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
-    sudo amazon-linux-extras enable corretto8
-    sudo yum clean metadata && sudo yum update -y && yum -y install java-1.8.0-amazon-corretto
-	EOT
-  /*
-  provisioner "remote-exec" {
-    inline = [
-      "sudo amazon-linux-extras enable corretto8",
-      "sudo yum clean metadata && sudo yum update -y && yum -y install java-1.8.0-amazon-corretto"
-    ]
-  }
-  */
-}
-
 resource "aws_instance" "Caching" {
-  ami           = var.instance_ami
-  instance_type = var.instance_type
-  subnet_id     = data.aws_subnet.sb_prv.id
+  #count                 = var.instance_count
+  ami                   = "ami-027aa2d9ec85953e1"
+  instance_type         = var.instance_type
+  subnet_id             = data.aws_subnet.sb_prv.id
+  private_ip            = "10.10.20.30"   #${count.index}"
+  secondary_private_ips = ["10.10.20.40"] #${count.index}"]
+  key_name              = aws_key_pair.ec2key.key_name
   vpc_security_group_ids = [
     data.aws_security_group.sg.id
   ]
   tags = {
-    Name        = "DB - Memchaced"
+    Name        = "DB - Memchaced -" # ${count.index + 1}"
     Environment = var.environment_tag
   }
+  /*
   user_data = <<EOT
     #!/bin/bash -xe
     #exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
-    sudo yum update -y && sudo yum -y install memcached php70-pecl-memcached
-    sudo sed -i 's|127.0.0.1|10.10.0.0|' /etc/sysconfig/memcached
+    yum update -y && yum -y install memcached php70-pecl-memcached
     cat /etc/sysconfig/memcached
-    sudo chkconfig memcached on
-    sudo service memcached start
+    #sed -i 's|127.0.0.1|10.10.0.0|' /etc/sysconfig/memcached
+    cat /etc/sysconfig/memcached
+    chkconfig memcached on
+    service memcached start
 	EOT
   /*
   provisioner "remote-exec" {

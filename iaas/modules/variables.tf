@@ -52,11 +52,14 @@ variable "public_key_path" {
 }
 variable "instance_ami" {
   description = "AMI for aws EC2 instance"
-  default     = "ami-0cfda02b23b35e070"
+  default     = "ami-0c115dbd34c69a004"
 }
 variable "instance_type" {
   description = "type for aws EC2 instance"
   default     = "t2.micro"
+}
+variable "instance_count" {
+  default = "3"
 }
 variable "environment_tag" {
   description = "Environment tag"
