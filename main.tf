@@ -66,17 +66,35 @@ resource "aws_instance" "Backand" {
   user_data = <<EOT
     #!/bin/bash -xe
     #exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
-    yum update -y && yum install -y java #&& yum remove -y java-1.7.0-openjdk
+    yum update -y && yum install -y java
     mkdir /app
     aws s3 sync s3://16-ted-search/app/ /app
     java -jar /app/embedash-1.1-SNAPSHOT.jar --spring.config.location=/app/application.properties
 	EOT
-  /*
-  provisioner "remote-exec" {
-    inline = [
-      "sudo amazon-linux-extras enable corretto8",
-      "sudo yum clean metadata && sudo yum update -y && yum -y install java-1.8.0-amazon-corretto"
-    ]
+}
+
+resource "aws_instance" "Backup" {
+  ami                   = var.instance_ami
+  instance_type         = var.instance_type
+  iam_instance_profile  = data.aws_iam_instance_profile.SSM-S3.name
+  subnet_id             = data.aws_subnet.sb_prv.id
+  private_ip            = "10.10.20.20"
+  secondary_private_ips = ["10.10.20.21"]
+  vpc_security_group_ids = [
+    data.aws_security_group.sg.id
+  ]
+  tags = {
+    Name        = "Backup - Backend - Ted Search App"
+    Environment = var.environment_tag
   }
-  */
+  user_data = <<EOT
+    #!/bin/bash -xe
+    yum update -y && yum install -y java
+    mkdir /app
+    aws s3 sync s3://16-ted-search/app/ /app
+    java -jar /app/embedash-1.1-SNAPSHOT.jar --spring.config.location=/app/application.properties
+	EOT
+  provisioner "local-exec" {
+    command = "echo ${aws_instance.Backup.id} > id_backup.txt"
+  }
 }

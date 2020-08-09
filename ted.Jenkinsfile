@@ -5,6 +5,7 @@ pipeline {
 
   tools {
     maven 'M3'
+    terraform 'terra'
   }
   stages {
     stage('Env') {
@@ -16,7 +17,7 @@ pipeline {
       steps {
         git url: 'git@github.com:BLsolomon/terraform-ted-search.git', branch: 'dev', credentialsId: 'admin'
       }
-    }
+    }/*
     stage('Build') {
       steps {
         dir('app') {
@@ -46,7 +47,20 @@ pipeline {
     }*/
     stage("Deploy") {
       steps {
-        
+        withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'aws-iam', usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+          sh 'terraform --version'
+          sh 'terraform init -input=false'
+          sh 'terraform plan'
+          sh 'terraform apply -input=false -auto-approve --target=aws_instance.Backup'
+          AWS("--region=eu-central-1 ssm describe-instance-information \
+	          --instance-information-filter-list key=InstanceIds,valueSet=`cat id_backup.txt`")
+        }
+        post  {
+          always{
+            echo "========always========"
+            sh 'docker-compose down'
+          }
+        }
       }
     }
   }
