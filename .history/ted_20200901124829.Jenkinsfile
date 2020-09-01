@@ -50,15 +50,21 @@ pipeline {
     }*/
     stage("Staging") {
       steps {
-        withCredentials([[$class: 'UsernamePasswordMultiBinding', 
+        [sshUserPrivateKey(
+    credentialsId: 'e4dd944e-5fef-4109-801c-b478d41af2d7',
+    keyFileVariable: 'SSH_KEY')]
+        withCredentials([
+          [$class: 'UsernamePasswordMultiBinding', 
           credentialsId: 'aws-iam', 
           usernameVariable: 'AWS_ACCESS_KEY_ID', 
-          passwordVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-          sh 'terraform workspace select default'
+          passwordVariable: 'AWS_SECRET_ACCESS_KEY'],
+          [sshUserPrivateKey(credentialsId: 'key_resource', 
+          keyFileVariable: 'TF_VAR_public_key_path')) {
+          sh 'env'
+          sh 'terraform --version'
           sh 'terraform init -input=false'
-          sh 'terraform refresh'
-          //sh 'terraform workspace new `date +"%y%m%d%H%M%S"`'
-          sh 'terraform apply -input=false -auto-approve --target=aws_instance.Staging'
+          sh 'terraform workspace new `date +"%y%m%d%H%M%S"`'
+          //sh 'terraform apply -input=false -auto-approve --target=aws_instance.Staging'
         }
       }
     }
@@ -69,6 +75,10 @@ pipeline {
           credentialsId: 'aws-iam', 
           usernameVariable: 'AWS_ACCESS_KEY_ID', 
           passwordVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+            sh 'which aws'
+            sh 'aws --version'
+            sh 'aws ssm describe-instance-information \
+              --output text --query "InstanceInformationList[*]" --region=eu-central-1'
             sh 'terraform init -input=false'
             backend_id = sh (returnStdout: true, script: 'echo `terraform output backend-id`').trim()
             sh 'terraform apply -input=false -auto-approve --target=aws_instance.Backup'
@@ -102,13 +112,13 @@ pipeline {
             //  --instance-information-filter-list key=InstanceIds,valueSet=`cat id_backup.txt`")
           }
         }
-      }/*
+      }
       post  {
         always{
           echo "========always========"
           sh 'terraform destroy -input=false -auto-approve --target=aws_instance.Backup'
         }
-      }*/
+      }
     }
   }
 }

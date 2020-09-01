@@ -8,7 +8,7 @@ pipeline {
     terraform 'terra'
   }
   environment {
-    AWS_DEFAULT_REGION = 'eu-central-1'
+    AWS_DEFAULT_REGION = eu-central-1
   }
   stages {
     stage('Env') {
@@ -54,25 +54,29 @@ pipeline {
           credentialsId: 'aws-iam', 
           usernameVariable: 'AWS_ACCESS_KEY_ID', 
           passwordVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-          sh 'terraform workspace select default'
+          sh 'env'
+          sh 'terraform --version'
           sh 'terraform init -input=false'
-          sh 'terraform refresh'
-          //sh 'terraform workspace new `date +"%y%m%d%H%M%S"`'
-          sh 'terraform apply -input=false -auto-approve --target=aws_instance.Staging'
+          sh 'terraform workspace new `date +"%y%m%d%H%M%S"`'
+          //sh 'terraform apply -input=false -auto-approve --target=aws_instance.Staging'
         }
       }
     }
     stage("Deploy") {
       steps {
         script{
+          sh 'which aws'
+          sh 'aws --version'
+          sh 'aws ssm describe-instance-information \
+            --output text --query "InstanceInformationList[*]" --region=eu-central-1'
+          sh 'terraform init -input=false'
+          backend_id = sh (returnStdout: true, script: 'echo `terraform output backend-id`').trim()
+          sh 'terraform apply -input=false -auto-approve --target=aws_instance.Backup'
+          backup_id = sh (returnStdout: true, script: 'echo `terraform output backup-id`').trim()
           withCredentials([[$class: 'UsernamePasswordMultiBinding', 
           credentialsId: 'aws-iam', 
           usernameVariable: 'AWS_ACCESS_KEY_ID', 
           passwordVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-            sh 'terraform init -input=false'
-            backend_id = sh (returnStdout: true, script: 'echo `terraform output backend-id`').trim()
-            sh 'terraform apply -input=false -auto-approve --target=aws_instance.Backup'
-            backup_id = sh (returnStdout: true, script: 'echo `terraform output backup-id`').trim()
             sh 'aws ec2 wait instance-running --instance-ids $backup_id'
             //sh 'sleep 45'
             command_id = sh (returnStdout: true, script: '''
@@ -102,13 +106,13 @@ pipeline {
             //  --instance-information-filter-list key=InstanceIds,valueSet=`cat id_backup.txt`")
           }
         }
-      }/*
+      }
       post  {
         always{
           echo "========always========"
           sh 'terraform destroy -input=false -auto-approve --target=aws_instance.Backup'
         }
-      }*/
+      }
     }
   }
 }

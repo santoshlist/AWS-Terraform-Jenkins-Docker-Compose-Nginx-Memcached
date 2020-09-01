@@ -12,6 +12,7 @@
             "[ $ret -eq 0 ] && exit 1",
             "curl -i -X POST http://localhost:9191/actuator/shutdown",
             "rm -f /app/*",
+            "ls -ll /app/",
             "aws s3 sync s3://16-ted-search/app/ /app",
             "echo DONE"
         ]

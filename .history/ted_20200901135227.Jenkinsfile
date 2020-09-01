@@ -47,21 +47,21 @@ pipeline {
           AWS("--region=eu-central-1 s3 cp app/target/embedash-1.1-SNAPSHOT.jar s3://16-ted-search/app/")
         }
       }
-    }*/
+    }*
     stage("Staging") {
       steps {
         withCredentials([[$class: 'UsernamePasswordMultiBinding', 
           credentialsId: 'aws-iam', 
           usernameVariable: 'AWS_ACCESS_KEY_ID', 
           passwordVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-          sh 'terraform workspace select default'
+          sh 'env'
+          sh 'terraform --version'
           sh 'terraform init -input=false'
-          sh 'terraform refresh'
-          //sh 'terraform workspace new `date +"%y%m%d%H%M%S"`'
-          sh 'terraform apply -input=false -auto-approve --target=aws_instance.Staging'
+          sh 'terraform workspace new `date +"%y%m%d%H%M%S"`'
+          //sh 'terraform apply -input=false -auto-approve --target=aws_instance.Staging'
         }
       }
-    }
+    }*/
     stage("Deploy") {
       steps {
         script{
@@ -102,13 +102,13 @@ pipeline {
             //  --instance-information-filter-list key=InstanceIds,valueSet=`cat id_backup.txt`")
           }
         }
-      }/*
+      }
       post  {
         always{
           echo "========always========"
           sh 'terraform destroy -input=false -auto-approve --target=aws_instance.Backup'
         }
-      }*/
+      }
     }
   }
 }

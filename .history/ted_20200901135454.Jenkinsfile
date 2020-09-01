@@ -54,9 +54,7 @@ pipeline {
           credentialsId: 'aws-iam', 
           usernameVariable: 'AWS_ACCESS_KEY_ID', 
           passwordVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-          sh 'terraform workspace select default'
           sh 'terraform init -input=false'
-          sh 'terraform refresh'
           //sh 'terraform workspace new `date +"%y%m%d%H%M%S"`'
           sh 'terraform apply -input=false -auto-approve --target=aws_instance.Staging'
         }

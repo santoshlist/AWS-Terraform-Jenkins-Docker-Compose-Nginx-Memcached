@@ -99,7 +99,7 @@ resource aws_instance Backup {
   subnet_id             = data.aws_subnet.sb_prv.id
   private_ip            = "10.10.20.20"
   secondary_private_ips = ["10.10.20.21"]
-  key_name              = data.terraform_remote_state.vpc.outputs.public_key
+  key_name              = aws_key_pair.ec2key.key_name
   vpc_security_group_ids = [
     data.aws_security_group.sg.id
   ]
@@ -131,7 +131,7 @@ resource aws_instance Staging {
   instance_type         = var.instance_type
   iam_instance_profile  = data.aws_iam_instance_profile.SSM-S3.name
   subnet_id             = data.aws_subnet.sb_pub.id
-  key_name              = data.terraform_remote_state.vpc.outputs.public_key
+  key_name              = aws_key_pair.ec2key.key_name
   vpc_security_group_ids = [
     data.aws_security_group.sg.id
   ]

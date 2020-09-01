@@ -307,6 +307,7 @@ resource "aws_instance" "Bastion" {
 output pub_sub {
   value = aws_subnet.Bastion_Subnet.id
 }
+
 output prv_sub {
   value = aws_subnet.Backend_Subnet.id
 }

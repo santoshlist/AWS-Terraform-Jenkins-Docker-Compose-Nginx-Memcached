@@ -23,6 +23,10 @@ data terraform_remote_state vpc {
 variable "region" {
   default = "eu-central-1"
 }
+variable "public_key_path" {
+  description = "Public key path"
+  default     = "~/.ssh/ted.pub"
+}
 variable "instance_ami" {
   description = "AMI for aws EC2 instance"
   default     = "ami-0c115dbd34c69a004"
@@ -58,6 +62,12 @@ data "aws_iam_instance_profile" "SSM-S3" {
   name = "Jenkins"
 }
 
+# Create Public key
+resource "aws_key_pair" "ec2key" {
+  key_name   = "privateKey"
+  public_key = file(var.public_key_path)
+}
+
 provider "aws" {
   #profile = "default"
   region  = var.region
@@ -75,7 +85,7 @@ resource aws_instance Backend {
   subnet_id             = data.aws_subnet.sb_prv.id
   private_ip            = "10.10.20.10"
   secondary_private_ips = ["10.10.20.11"]
-  key_name              = data.terraform_remote_state.vpc.outputs.public_key
+  key_name              = aws_key_pair.ec2key.key_name
   vpc_security_group_ids = [
     data.aws_security_group.sg.id
   ]
@@ -99,7 +109,7 @@ resource aws_instance Backup {
   subnet_id             = data.aws_subnet.sb_prv.id
   private_ip            = "10.10.20.20"
   secondary_private_ips = ["10.10.20.21"]
-  key_name              = data.terraform_remote_state.vpc.outputs.public_key
+  key_name              = aws_key_pair.ec2key.key_name
   vpc_security_group_ids = [
     data.aws_security_group.sg.id
   ]
@@ -131,7 +141,7 @@ resource aws_instance Staging {
   instance_type         = var.instance_type
   iam_instance_profile  = data.aws_iam_instance_profile.SSM-S3.name
   subnet_id             = data.aws_subnet.sb_pub.id
-  key_name              = data.terraform_remote_state.vpc.outputs.public_key
+  key_name              = aws_key_pair.ec2key.key_name
   vpc_security_group_ids = [
     data.aws_security_group.sg.id
   ]

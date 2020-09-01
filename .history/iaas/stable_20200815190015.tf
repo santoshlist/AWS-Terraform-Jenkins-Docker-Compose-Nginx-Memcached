@@ -283,13 +283,6 @@ resource "aws_iam_instance_profile" "Nginx-App" {
   role = aws_iam_role.EC2.name
 }
 
-# Create Public key
-resource "aws_key_pair" "ec2key" {
-  key_name   = "privateKey"
-  public_key = file(var.public_key_path)
-}
-
-
 /*
 resource "aws_instance" "Bastion" {
   ami           = var.instance_ami
@@ -304,14 +297,12 @@ resource "aws_instance" "Bastion" {
   user_data                   = var.boot //<<EOT
 }
 */
-output pub_sub {
+output "pub_sub" {
   value = aws_subnet.Bastion_Subnet.id
 }
-output prv_sub {
+
+output "prv_sub" {
   value = aws_subnet.Backend_Subnet.id
-}
-output public_key {
-  value = aws_key_pair.ec2key.key_name
 }
 /*
 module "endpoint" {
