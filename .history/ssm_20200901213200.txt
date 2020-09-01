@@ -1,0 +1,47 @@
+sh_command_id=$(aws ssm send-command \
+	--instance-ids "i-04fd01e6e0ea8ecf5" \
+	--document-name "AWS-RunShellScript" \
+	--comment "Demo run shell script on Linux Instances" \
+	--cli-input-json file://upd.json \
+	--output text \
+	--query "Command.CommandId") sh -c 'aws ssm list-command-invocations \
+	--command-id "$sh_command_id" \
+	--details \
+	--query "CommandInvocations[].CommandPlugins[].{Status:Status,Output:Output}"'
+
+  aws ssm send-command \
+	--instance-ids "i-04fd01e6e0ea8ecf5" \
+	--document-name "AWS-RunShellScript" \
+	--comment "Demo run shell script on Linux Instance" \
+	--parameters commands="java -jar /app/embedash-1.1-SNAPSHOT.jar --spring.config.location=/app/application.properties" \
+	--output text \
+	--query "Command.CommandId"
+
+#this one run in loop in jenkins
+  aws ssm send-command \
+	--instance-ids "i-04fd01e6e0ea8ecf5" \
+	--document-name "AWS-RunShellScript" \
+	--comment "Demo run shell script on Linux Instance" \
+	--parameters commands="wget --connect-timeout=10 -O - localhost:9191" \
+	--output text \
+	--query "Command.CommandId"
+
+aws ssm list-commands --command-id f7bf1938-11fe-4fe6-9e85-55441cdce734 | egrep Success|InProgress ( if in progress sleep 5)
+
+  aws ssm list-command-invocations --command-id eea7ab51-f67e-45ac-840a-b9a049d08446 --details
+
+  aws ssm list-commands \
+	--command-id
+
+  for jenkins pipeline:
+
+
+terraform apply -target=aws_instance.Backup
+
+var = terraform output Backend-id
+
+sleep 45 seconds
+
+run all the ssm commands and check for success of the last one
+  
+terraform destroy -target=aws_instance.Backup
