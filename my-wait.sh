@@ -12,7 +12,7 @@ ret=5
 #    --retry-connrefused --silent --fail ${addr}:${port}
 
 # Wget
-until wget -O - ${addr}:${port} || [ $ret -eq 0 ]; do
+until wget --connect-timeout=5 -O - ${addr}:${port} || [ $ret -eq 0 ]; do
     sleep 5 
     ret=$((ret-1))
 done

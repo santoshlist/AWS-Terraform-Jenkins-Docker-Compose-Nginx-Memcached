@@ -18,6 +18,7 @@ services:
             mvn verify -X"
 #java -jar app/target/embedash-1.1-SNAPSHOT.jar --spring.config.location=/app/application.properties
   
+#java -jar embedash-1.1-SNAPSHOT.jar --spring.config.location=application.properties
   mem:
     image: memcached:alpine
     container_name: mem
@@ -30,8 +31,8 @@ services:
     volumes:
       - /home/Admin/docker/m2:/root/.m2/repository
       - ./app:/app
-    #ports:
-    # - "8080:9191"
+    ports:
+     - "9191:9191"
     working_dir: /app
     command: ["java", "-jar", "target/embedash-1.1-SNAPSHOT.jar", 
     "--spring.config.location=./application.properties"]

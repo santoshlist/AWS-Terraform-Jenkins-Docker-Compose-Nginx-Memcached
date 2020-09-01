@@ -1,0 +1,16 @@
+{
+  "Parameters": {
+      "commands": [
+          "#!/bin/sh",
+          "addr=localhost",
+          "port=9191",
+          "ret=10",
+          "until wget --connect-timeout=10 -O - ${addr}:${port} &>/dev/null || [ $ret -eq 0 ]; do",
+              "sleep 10",
+              "ret=$((ret-1))",
+          "done",
+          "[ $ret -eq 0 ] && exit 1",
+          "echo DONE"
+      ]
+  }
+}

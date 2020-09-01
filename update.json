@@ -1,0 +1,20 @@
+{
+    "Parameters": {
+        "commands": [
+            "#!/bin/sh",
+            "addr=10.10.20.20",
+            "port=9191",
+            "ret=12",
+            "until wget --connect-timeout=10 -O - ${addr}:${port} &>/dev/null || [ $ret -eq 0 ]; do",
+                "sleep 10",
+                "ret=$((ret-1))",
+            "done",
+            "[ $ret -eq 0 ] && exit 1",
+            "curl -i -X POST http://localhost:9191/actuator/shutdown",
+            "rm -f /app/*",
+            "ls -ll /app/",
+            "aws s3 sync s3://16-ted-search/app/ /app",
+            "echo DONE"
+        ]
+    }
+}

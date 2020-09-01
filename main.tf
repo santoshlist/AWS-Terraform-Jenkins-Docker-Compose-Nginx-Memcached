@@ -1,4 +1,14 @@
 
+terraform {
+  backend "s3" {
+    bucket               = "ted-tfstate"
+    key                  = "terraform/dev/main.tfstate"
+    region               = "eu-central-1"
+    workspace_key_prefix = "terraform/workspace/main-"
+    dynamodb_table       = "ted-state-lock"
+  }
+}
+
 variable "region" {
   default = "eu-central-1"
 }
@@ -30,6 +40,10 @@ data "aws_subnet" "sb_prv" {
   cidr_block = var.backendCIDRblock
 }
 
+data "aws_subnet" "sb_pub" {
+  cidr_block = var.bastionCIDRblock
+}
+
 data "aws_iam_instance_profile" "SSM-S3" {
   name = "Jenkins"
 }
@@ -41,21 +55,23 @@ resource "aws_key_pair" "ec2key" {
 }
 
 provider "aws" {
-  profile = "default"
-  region  = "eu-central-1"
+  #profile = "default"
+  region  = var.region
+  version = "~> 3.0"
 }
 
 module "prod" {
-  source = "./iaas/modules"
+  source = "./iaas/ec2-nginx-mem"
 }
 
-resource "aws_instance" "Backand" {
+resource aws_instance Backend {
   ami                   = var.instance_ami
   instance_type         = var.instance_type
   iam_instance_profile  = data.aws_iam_instance_profile.SSM-S3.name
   subnet_id             = data.aws_subnet.sb_prv.id
   private_ip            = "10.10.20.10"
   secondary_private_ips = ["10.10.20.11"]
+  key_name              = aws_key_pair.ec2key.key_name
   vpc_security_group_ids = [
     data.aws_security_group.sg.id
   ]
@@ -65,7 +81,6 @@ resource "aws_instance" "Backand" {
   }
   user_data = <<EOT
     #!/bin/bash -xe
-    #exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
     yum update -y && yum install -y java
     mkdir /app
     aws s3 sync s3://16-ted-search/app/ /app
@@ -73,13 +88,14 @@ resource "aws_instance" "Backand" {
 	EOT
 }
 
-resource "aws_instance" "Backup" {
+resource aws_instance Backup {
   ami                   = var.instance_ami
   instance_type         = var.instance_type
   iam_instance_profile  = data.aws_iam_instance_profile.SSM-S3.name
   subnet_id             = data.aws_subnet.sb_prv.id
   private_ip            = "10.10.20.20"
   secondary_private_ips = ["10.10.20.21"]
+  key_name              = aws_key_pair.ec2key.key_name
   vpc_security_group_ids = [
     data.aws_security_group.sg.id
   ]
@@ -94,7 +110,30 @@ resource "aws_instance" "Backup" {
     aws s3 sync s3://16-ted-search/app/ /app
     java -jar /app/embedash-1.1-SNAPSHOT.jar --spring.config.location=/app/application.properties
 	EOT
+  /*
   provisioner "local-exec" {
     command = "echo ${aws_instance.Backup.id} > id_backup.txt"
   }
+  */
+}
+output backend-id {
+  value = aws_instance.Backend.id
+}
+output backup-id {
+  value = aws_instance.Backup.id
+}
+resource aws_instance Staging {
+  ami                   = var.instance_ami
+  instance_type         = var.instance_type
+  iam_instance_profile  = data.aws_iam_instance_profile.SSM-S3.name
+  subnet_id             = data.aws_subnet.sb_pub.id
+  key_name              = aws_key_pair.ec2key.key_name
+  vpc_security_group_ids = [
+    data.aws_security_group.sg.id
+  ]
+  tags = {
+    Name        = "${terraform.workspace} - Ted Search App"
+    Environment = "Staging"
+  }
+  user_data = file("init.sh")
 }

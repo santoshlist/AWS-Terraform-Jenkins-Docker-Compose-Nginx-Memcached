@@ -1,0 +1,23 @@
+#!/bin/sh
+# Proccess command line args
+addr=10.10.20.20
+port=9191
+ret=10
+
+# wait for connection
+# Wget
+until wget --connect-timeout=5 -O - ${addr}:${port} || [ $ret -eq 0 ]; do
+    sleep 5 
+    ret=$((ret-1))
+done
+
+# Exit if the number of retries left is none
+[ $ret -eq 0 ] && exit 1
+
+# Execute commands
+# turn off the app
+curl -i -X POST http://localhost:9191/actuator/shutdown
+rm -f /app/*
+aws s3 sync s3://16-ted-search/app/ /app
+# The next line is commented out just for testing purpuses
+#java -jar /app/embedash-1.1-SNAPSHOT.jar --spring.config.location=/app/application.properties &

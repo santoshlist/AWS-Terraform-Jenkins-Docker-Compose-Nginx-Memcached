@@ -1,4 +1,14 @@
 
+terraform {
+  backend "s3" {
+    bucket               = "ted-tfstate"
+    key                  = "terraform/dev/vpc.tfstate"
+    region               = "eu-central-1"
+    workspace_key_prefix = "terraform/workspace/vpc-"
+    dynamodb_table       = "ted-state-lock"
+  }
+}
+
 provider "aws" {
   profile = "default"
   region  = var.region
@@ -273,119 +283,6 @@ resource "aws_iam_instance_profile" "Nginx-App" {
   role = aws_iam_role.EC2.name
 }
 
-resource aws_vpc_endpoint ssm {
-  private_dns_enabled = true
-  service_name        = join(".", ["com.amazonaws", var.region, "ssm"])
-  vpc_endpoint_type   = "Interface"
-  vpc_id              = aws_vpc.Ted-VPC.id
-
-  security_group_ids = [
-    aws_security_group.Ted-VPC_Security_Group.id
-  ]
-
-  # Interface types get this. It connects the Endpoint to a subnet
-  subnet_ids = [
-    aws_subnet.Backend_Subnet.id
-  ]
-
-  tags = merge(
-    {
-      Name = "service-endpoint-for-ssm"
-      Tech = "Service Endpoint"
-      Srv  = "VPC"
-    }
-  )
-}
-
-resource aws_vpc_endpoint ssmmessages {
-  private_dns_enabled = true
-  service_name        = join(".", ["com.amazonaws", var.region, "ssmmessages"])
-  vpc_endpoint_type   = "Interface"
-  vpc_id              = aws_vpc.Ted-VPC.id
-
-  security_group_ids = [
-    aws_security_group.Ted-VPC_Security_Group.id
-  ]
-
-  # Interface types get this. It connects the Endpoint to a subnet
-  subnet_ids = [
-    aws_subnet.Backend_Subnet.id
-  ]
-
-  tags = merge(
-    {
-      Name = "service-endpoint-for-ssm messages"
-      Tech = "Service Endpoint"
-      Srv  = "VPC"
-    }
-  )
-}
-
-resource aws_vpc_endpoint ec2 {
-  private_dns_enabled = true
-  service_name        = join(".", ["com.amazonaws", var.region, "ec2"])
-  vpc_endpoint_type   = "Interface"
-  vpc_id              = aws_vpc.Ted-VPC.id
-
-  security_group_ids = [
-    aws_security_group.Ted-VPC_Security_Group.id
-  ]
-
-  # Interface types get this. It connects the Endpoint to a subnet
-  subnet_ids = [
-    aws_subnet.Backend_Subnet.id
-  ]
-
-  tags = merge(
-    {
-      Name = "service-endpoint-for-ec2"
-      Tech = "Service Endpoint"
-      Srv  = "VPC"
-    }
-  )
-}
-
-resource aws_vpc_endpoint ec2messages {
-  private_dns_enabled = true
-  service_name        = join(".", ["com.amazonaws", var.region, "ec2messages"])
-  vpc_endpoint_type   = "Interface"
-  vpc_id              = aws_vpc.Ted-VPC.id
-
-  security_group_ids = [
-    aws_security_group.Ted-VPC_Security_Group.id
-  ]
-
-  # Interface types get this. It connects the Endpoint to a subnet
-  subnet_ids = [
-    aws_subnet.Backend_Subnet.id
-  ]
-
-  tags = merge(
-    {
-      Name = "service-endpoint-for-ec2 messages"
-      Tech = "Service Endpoint"
-      Srv  = "VPC"
-    }
-  )
-}
-
-resource aws_vpc_endpoint s3 {
-  service_name = join(".", ["com.amazonaws", var.region, "s3"])
-  vpc_id       = aws_vpc.Ted-VPC.id
-
-  # Interface types get this. It connects the Endpoint to a route table
-  route_table_ids = [
-    aws_route_table.Backend_route_table.id
-  ]
-
-  tags = merge(
-    {
-      Name = "service-endpoint-for-ec2 messages"
-      Tech = "Service Endpoint"
-      Srv  = "VPC"
-    }
-  )
-}
 /*
 resource "aws_instance" "Bastion" {
   ami           = var.instance_ami
@@ -407,3 +304,8 @@ output "pub_sub" {
 output "prv_sub" {
   value = aws_subnet.Backend_Subnet.id
 }
+/*
+module "endpoint" {
+  source = "./endpoint"
+}
+*/

@@ -45,20 +45,63 @@ pipeline {
         }
       }
     }*/
+    stage("Staging") {
+      steps {
+        sh 'terraform --version'
+        sh 'terraform init -input=false'
+        sh 'terraform workspace new `date +"%y%m%d%H%M%S"`'
+        sh 'terraform apply -input=false -auto-approve --target=aws_instance.Staging'
+      }
+    }
     stage("Deploy") {
       steps {
-        withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'aws-iam', usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-          sh 'terraform --version'
+        script{
+          sh 'which aws'
+          sh 'aws --version'
+          sh 'aws ssm describe-instance-information \
+            --output text --query "InstanceInformationList[*]" --region=eu-central-1'
           sh 'terraform init -input=false'
-          sh 'terraform plan'
+          backend_id = sh (returnStdout: true, script: 'echo `terraform output backend-id`').trim()
           sh 'terraform apply -input=false -auto-approve --target=aws_instance.Backup'
-          AWS("--region=eu-central-1 ssm describe-instance-information \
-	          --instance-information-filter-list key=InstanceIds,valueSet=`cat id_backup.txt`")
+          backup_id = sh (returnStdout: true, script: 'echo `terraform output backup-id`').trim()
+          withCredentials([[$class: 'UsernamePasswordMultiBinding', 
+          credentialsId: 'aws-iam', 
+          usernameVariable: 'AWS_ACCESS_KEY_ID', 
+          passwordVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+            sh 'aws ec2 wait instance-running --instance-ids $backup_id'
+            //sh 'sleep 45'
+            command_id = sh (returnStdout: true, script: '''
+            aws ssm send-command \
+            --instance-ids $backend_id \
+            --document-name "AWS-RunShellScript" \
+            --comment "upgrade artifact" \
+            --cli-input-json file://update.json \
+            --output text \
+            --query "Command.CommandId"
+            ''').trim()
+            sh 'while [ `aws ssm list-commands --command-id $command_id | egrep InProgress` ]; do sleep 10; done'
+            sh 'aws ssm list-commands --command-id $command_id | egrep Success'
+            val_command_id = sh (returnStdout: true, script: '''
+            aws ssm send-command \
+            --instance-ids $backend_id \
+            --document-name "AWS-RunShellScript" \
+            --comment "validate deployment" \
+            --cli-input-json file://validate.json \
+            --output text \
+            --query "Command.CommandId"
+            ''').trim()
+            sh 'while [ `aws ssm list-commands --command-id $val_command_id | egrep InProgress` ]; do sleep 10; done'
+            sh 'aws ssm list-commands --command-id $val_command_id | egrep Success'
+            //
+            //AWS("--region=eu-central-1 ssm describe-instance-information \
+            //  --instance-information-filter-list key=InstanceIds,valueSet=`cat id_backup.txt`")
+          }
         }
+      }
         post  {
           always{
             echo "========always========"
-            sh 'docker-compose down'
+            sh 'terraform destroy -input=false -auto-approve --target=aws_instance.Backup'
           }
         }
       }

@@ -1,9 +1,16 @@
 #/bin/ash
+set -x
 
 # Recive command lines arguments as files, the first is the data to post, the second is the comparation
 out=''
 post="$1"
 comp="$2"
+port=8080
+addr=ng
+
+# Wait for connection
+curl --retry-delay 6 --connect-timeout 5 --max-time 5 --retry 5\
+                --retry-connrefused --silent --fail ${addr}:
 
 # set default  test files in case of no command line arguments
 [ -z $post ] && post=e2e-in.txt
