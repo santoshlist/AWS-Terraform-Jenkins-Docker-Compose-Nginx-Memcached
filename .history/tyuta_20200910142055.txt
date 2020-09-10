@@ -1,0 +1,7 @@
+tyuta
+sh """aws ssm send-command \
+            --instance-ids $backend_id \
+            --document-name "AWS-RunShellScript" \
+            --comment "Relaunch updated app" \
+            --parameters commands='java -jar /app/embedash-1.1-SNAPSHOT.jar --spring.config.location=/app/application.properties'"""
+            

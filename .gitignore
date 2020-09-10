@@ -12,3 +12,6 @@ iaas/terraform.tfstate.backup
 
 ssm.txt
 static/
+.job.config.json
+nginx.bitnami.conf.backup
+tyuta.txt

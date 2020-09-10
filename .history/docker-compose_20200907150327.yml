@@ -76,6 +76,8 @@ services:
     depends_on:
      - ng
 
+
+
 volumes:
   st:
 
