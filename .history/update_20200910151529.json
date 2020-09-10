@@ -13,7 +13,7 @@
             "curl -i -X POST http://localhost:9191/actuator/shutdown",
             "rm -f /app/*",
             "aws s3 sync s3://16-ted-search/app/ /app",
-            "echo DONE",
+            "echo DONE"
             "java -jar /app/embedash-1.1-SNAPSHOT.jar --spring.config.location=/app/application.properties &"
         ]
     }
